@@ -15,6 +15,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+          - macos-latest
         ocaml-version:
           - 4.10.0
         skip_test:
@@ -56,18 +57,29 @@ jobs:
       - run: opam pin add . -y --no-action
 
       - run: opam depext -y freeton_ocaml_sdk
-        if: steps.cache-opam.outputs.cache-hit != 'true'
+#        if: steps.cache-opam.outputs.cache-hit != 'true'
 
       - run: opam install -y ./*.opam --deps-only --with-test
-        if: steps.cache-opam.outputs.cache-hit != 'true'
+#        if: steps.cache-opam.outputs.cache-hit != 'true'
 
-      - run: opam upgrade --fixup
-        if: steps.cache-opam.outputs.cache-hit == 'true'
+#      - run: opam upgrade --fixup
+#        if: steps.cache-opam.outputs.cache-hit == 'true'
 
       - run: dos2unix scripts/*.sh
         if: matrix.os == 'windows-latest'
 
-      - run: make build
+      - name: Linux Build
+        run: make build
+        if: matrix.os != 'macos-latest'
+
+      - name: MacOS Build
+        env:
+          LDFLAGS: -L/usr/local/Cellar/openssl@1.1/1.1.1k/lib
+          CPPFLAGS: -I/usr/local/Cellar/openssl@1.1/1.1.1k/include
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/Cellar/openssl@1.1/1.1.1k/lib:$LD_LIBRARY_PATH
+          make build
+        if: matrix.os == 'macos-latest'
 
       - name: run test suite
         run: |
